@@ -1,0 +1,84 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id             Int            @id @default(autoincrement())
+  email          String         @unique
+  password       String
+  name           String
+  familyId       Int?
+  family         Family?        @relation(fields: [familyId], references: [id])
+  createdAt      DateTime       @default(now())
+  expenses       Expense[]      @relation("PaidBy")
+  billPayments   BillPayment[]
+  defaultedBills Bill[]         @relation("DefaultPayer")
+
+  @@map("users")
+}
+
+model Family {
+  id             Int            @id @default(autoincrement())
+  name           String
+  inviteCode     String         @unique
+  members        User[]
+  expenses       Expense[]
+  bills          Bill[]
+  createdAt      DateTime       @default(now())
+
+  @@map("families")
+}
+
+model Expense {
+  id             Int            @id @default(autoincrement())
+  amount         Decimal        @db.Decimal(10, 2)
+  description    String?
+  category       String
+  paidBy         User           @relation("PaidBy", fields: [paidByUserId], references: [id])
+  paidByUserId   Int
+  family         Family         @relation(fields: [familyId], references: [id])
+  familyId       Int
+  date           DateTime       @default(now())
+  createdAt      DateTime       @default(now())
+
+  @@map("expenses")
+}
+
+model Bill {
+  id             Int            @id @default(autoincrement())
+  name           String
+  amount         Decimal        @db.Decimal(10, 2)
+  dueDay         Int
+  category       String
+  defaultPayer   User?          @relation("DefaultPayer", fields: [defaultPayerId], references: [id])
+  defaultPayerId Int?
+  family         Family         @relation(fields: [familyId], references: [id])
+  familyId       Int
+  isActive       Boolean        @default(true)
+  payments       BillPayment[]
+  createdAt      DateTime       @default(now())
+
+  @@map("bills")
+}
+
+model BillPayment {
+  id             Int            @id @default(autoincrement())
+  bill           Bill           @relation(fields: [billId], references: [id])
+  billId         Int
+  paidBy         User           @relation(fields: [paidByUserId], references: [id])
+  paidByUserId   Int
+  amount         Decimal        @db.Decimal(10, 2)
+  paidDate       DateTime       @default(now())
+  notes          String?
+
+  @@map("bill_payments")
+}
